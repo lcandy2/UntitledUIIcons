@@ -35,7 +35,22 @@ dependencies: [
 ]
 ```
 
-Then add `"UntitledUIIcons"` to the `dependencies` of your target.
+Two products are available:
+
+| Product | Build Time | Description |
+|---------|-----------|-------------|
+| `UntitledUIIcons` | Normal | Build from source |
+| `UntitledUIIconsBinary` | Zero | Pre-compiled XCFramework |
+
+```swift
+// Source (default)
+.product(name: "UntitledUIIcons", package: "UntitledUIIcons")
+
+// Binary (recommended for faster builds)
+.product(name: "UntitledUIIconsBinary", package: "UntitledUIIcons")
+```
+
+Both use `import UntitledUIIcons` — no code changes needed to switch.
 
 ### Claude Code Skill
 
