@@ -114,6 +114,12 @@ The library includes 1173 icons across a wide range of categories:
 
 For the complete list of all 1173 icons, see [`UntitledUIIcon+All.swift`](Sources/UntitledUIIcons/UntitledUIIcon%2BAll.swift).
 
+## Bundle Size
+
+Importing `UntitledUIIcons` includes all 1173 symbols in your app bundle (Xcode does not tree-shake asset catalogs). The compiled asset catalog is estimated at **3–5 MB** — comparable to other icon libraries like [PhosphorSymbols](https://github.com/nicklama/PhosphorSymbols) and [Iconoir-Swift](https://github.com/iconoir-icons/iconoir-swift).
+
+If you only need a few icons and want to minimize bundle size, you can copy individual `.symbolset` folders from [`Symbols/`](Symbols/) directly into your project's `.xcassets` catalog — no need to add the full package.
+
 ## How It Works
 
 The conversion pipeline extracts SVG paths from the [@untitledui/icons](https://www.npmjs.com/package/@untitledui/icons) React components and converts them to SF Symbol format:

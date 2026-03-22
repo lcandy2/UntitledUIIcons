@@ -15,8 +15,18 @@ import { execFileSync, execSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync, readdirSync, copyFileSync } from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { parseArgs } from "node:util";
+import { createRequire } from "node:module";
 
 const ROOT = resolve(import.meta.dirname, "..");
+
+// Install svg-path-bbox for accurate path bounding box computation
+try {
+  createRequire(import.meta.url)("svg-path-bbox");
+} catch {
+  console.log("Installing svg-path-bbox...");
+  execSync("npm install --no-save svg-path-bbox", { cwd: ROOT, stdio: "pipe" });
+}
+const { svgPathBbox } = await import("svg-path-bbox");
 
 // ---------------------------------------------------------------------------
 // CLI args
@@ -77,6 +87,27 @@ const JSX_TO_SVG_ATTRS = {
   clipPath: "clip-path",
 };
 
+// ---------------------------------------------------------------------------
+// SVG extraction from React components
+// ---------------------------------------------------------------------------
+
+/** Compute combined bounding box of all path elements using svg-path-bbox. */
+function computeBBox(elements) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const el of elements) {
+    const d = el.attrs?.d;
+    if (!d) continue;
+    try {
+      const [x1, y1, x2, y2] = svgPathBbox(d);
+      minX = Math.min(minX, x1);
+      minY = Math.min(minY, y1);
+      maxX = Math.max(maxX, x2);
+      maxY = Math.max(maxY, y2);
+    } catch { /* skip unparseable paths */ }
+  }
+  return isFinite(minX) ? { minX, minY, maxX, maxY } : null;
+}
+
 function extractSVG(mjsContent) {
   // Match all createElement calls for child elements (path, circle, etc.)
   // Pattern: createElement("tag", {attrs})
@@ -105,8 +136,22 @@ function extractSVG(mjsContent) {
 
   if (elements.length === 0) return null;
 
-  // Build SVG string
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">\n`;
+  // Compute tight viewBox from path bounding boxes
+  const STROKE_WIDTH = 2;
+  const bbox = computeBBox(elements);
+  let vb = "0 0 24 24";
+  if (bbox) {
+    // Expand by half stroke-width to account for stroke overflow
+    const pad = STROKE_WIDTH / 2;
+    const x = bbox.minX - pad;
+    const y = bbox.minY - pad;
+    const w = bbox.maxX - bbox.minX + STROKE_WIDTH;
+    const h = bbox.maxY - bbox.minY + STROKE_WIDTH;
+    vb = `${x} ${y} ${w} ${h}`;
+  }
+
+  // Build SVG string with tight viewBox
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="24" height="24" fill="none" stroke="black" stroke-width="${STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round">\n`;
 
   for (const el of elements) {
     const attrStr = Object.entries(el.attrs)
