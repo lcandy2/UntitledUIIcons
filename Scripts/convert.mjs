@@ -156,7 +156,7 @@ function escapeIfKeyword(name) {
 let swiftdrawBin = "swiftdraw";
 
 function convertSVG(inputSvg, outputSvg) {
-  const args = [inputSvg, "--format", "sfsymbol", "--insets", "auto", "--size", "medium", "--output", outputSvg];
+  const args = [inputSvg, "--format", "sfsymbol", "--insets", "0,0,0,0", "--size", "medium", "--output", outputSvg];
   try {
     execFileSync(swiftdrawBin, args, { stdio: "pipe" });
     return true;
