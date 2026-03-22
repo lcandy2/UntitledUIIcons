@@ -23,10 +23,10 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: latest
 
@@ -37,7 +37,7 @@ jobs:
         run: node Scripts/convert.mjs
 
       - name: Upload converted files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: converted
           path: |
@@ -51,7 +51,7 @@ jobs:
           npm view @untitledui/icons version > /tmp/untitledui-version.txt
 
       - name: Upload package version
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: untitledui-version
           path: /tmp/untitledui-version.txt
@@ -63,19 +63,19 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Download converted files
         if: needs.convert.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: converted
 
       - name: Download package version
         if: needs.convert.result == 'success'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: untitledui-version
           path: /tmp
