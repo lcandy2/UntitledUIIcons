@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      major_version:
+        description: "Bump major version (increment only). Leave empty to keep current."
+        required: false
+        type: string
+  schedule:
+    - cron: '0 0 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: latest
+
+      - name: Install SwiftDraw
+        run: brew install swiftdraw
+
+      - name: Run conversion
+        run: node Scripts/convert.mjs
+
+      - name: Upload converted files
+        uses: actions/upload-artifact@v4
+        with:
+          name: converted
+          path: |
+            Symbols/
+            Sources/UntitledUIIcons/UntitledUIIcon+All.swift
+            Sources/UntitledUIIcons/Resources/
+          retention-days: 1
+
+      - name: Save package version
+        run: |
+          npm view @untitledui/icons version > /tmp/untitledui-version.txt
+
+      - name: Upload package version
+        uses: actions/upload-artifact@v4
+        with:
+          name: untitledui-version
+          path: /tmp/untitledui-version.txt
+          retention-days: 1
+
+  test-and-release:
+    needs: [convert]
+    if: always()
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+
+      - name: Download converted files
+        if: needs.convert.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: converted
+
+      - name: Download package version
+        if: needs.convert.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: untitledui-version
+          path: /tmp
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+
+      # --- Release (only after successful conversion with changes) ---------
+
+      - name: Check for changes against latest release
+        if: needs.convert.result == 'success'
+        id: changes
+        run: |
+          LATEST_TAG=$(git tag --list '[0-9]*' --sort=-v:refname | head -n1)
+          if [ -z "$LATEST_TAG" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "No existing release found, will create first release."
+          elif ! git diff --quiet "$LATEST_TAG" -- Symbols/ Sources/; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Changes detected since $LATEST_TAG."
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No changes since $LATEST_TAG, skipping release."
+          fi
+
+      - name: Determine version
+        if: steps.changes.outputs.changed == 'true'
+        id: version
+        run: |
+          UNTITLED_VERSION=$(cat /tmp/untitledui-version.txt | tr -d '[:space:]')
+          echo "untitled=$UNTITLED_VERSION" >> "$GITHUB_OUTPUT"
+
+          IFS='.' read -r P_MAJOR P_MINOR P_PATCH <<< "$UNTITLED_VERSION"
+          ENCODED_MINOR=$(( P_MAJOR * 10000 + P_MINOR * 100 + P_PATCH ))
+          echo "encoded_minor=$ENCODED_MINOR" >> "$GITHUB_OUTPUT"
+
+          LATEST_TAG=$(git tag --list '[0-9]*' --sort=-v:refname | head -n1)
+
+          if [ -n "$LATEST_TAG" ]; then
+            CURRENT_MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
+            CURRENT_MINOR=$(echo "$LATEST_TAG" | cut -d. -f2)
+            CURRENT_PATCH=$(echo "$LATEST_TAG" | cut -d. -f3)
+          else
+            CURRENT_MAJOR=0
+            CURRENT_MINOR=0
+            CURRENT_PATCH=0
+          fi
+
+          INPUT_MAJOR="${{ github.event.inputs.major_version }}"
+          if [ -n "$INPUT_MAJOR" ]; then
+            if [ "$INPUT_MAJOR" -lt "$CURRENT_MAJOR" ] 2>/dev/null; then
+              echo "::error::major_version ($INPUT_MAJOR) must be >= current ($CURRENT_MAJOR)"
+              exit 1
+            fi
+            MAJOR="$INPUT_MAJOR"
+          elif [ "$CURRENT_MAJOR" -eq 0 ]; then
+            MAJOR=1
+          else
+            MAJOR="$CURRENT_MAJOR"
+          fi
+
+          if [ "$MAJOR" -gt "$CURRENT_MAJOR" ]; then
+            TAG="${MAJOR}.${ENCODED_MINOR}.0"
+          elif [ "$ENCODED_MINOR" -ne "$CURRENT_MINOR" ]; then
+            TAG="${MAJOR}.${ENCODED_MINOR}.0"
+          else
+            NEXT_PATCH=$(( CURRENT_PATCH + 1 ))
+            TAG="${MAJOR}.${ENCODED_MINOR}.${NEXT_PATCH}"
+          fi
+
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Release tag: $TAG (@untitledui/icons v$UNTITLED_VERSION)"
+
+      - name: Commit and push
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Symbols/ Sources/
+          if ! git diff --cached --quiet; then
+            git commit -m "Update symbols — ${{ steps.version.outputs.tag }}"
+            git push
+          fi
+
+      - name: Create release
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RELEASE_TAG="${{ steps.version.outputs.tag }}"
+          UNTITLED_VERSION="${{ steps.version.outputs.untitled }}"
+
+          cd Symbols
+          zip -r ../UntitledUIIcons-symbols.zip .
+          cd ..
+
+          cat > /tmp/release-notes.md << 'EOF'
+          Auto-converted from [@untitledui/icons](https://www.npmjs.com/package/@untitledui/icons).
+
+          ## Install via SPM
+
+          ```
+          https://github.com/user/UntitledUIIcons.git
+          ```
+
+          ## Usage
+          ```swift
+          import UntitledUIIcons
+
+          Image(untitledUI: .heart)
+          Image(untitledUI: .alarm_clock)
+
+          // UIKit
+          let image = UIImage(untitledUI: .heart)
+          ```
+          EOF
+
+          gh release create "$RELEASE_TAG" \
+            --title "UntitledUIIcons $RELEASE_TAG (@untitledui/icons v$UNTITLED_VERSION)" \
+            --notes-file /tmp/release-notes.md \
+            UntitledUIIcons-symbols.zip
