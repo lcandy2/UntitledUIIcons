@@ -65,7 +65,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-tags: true
+          fetch-depth: 0
 
       - name: Download converted files
         if: needs.convert.result == 'success'
@@ -115,7 +115,11 @@ jobs:
           ENCODED_MINOR=$(( P_MAJOR * 10000 + P_MINOR * 100 + P_PATCH ))
           echo "encoded_minor=$ENCODED_MINOR" >> "$GITHUB_OUTPUT"
 
-          LATEST_TAG=$(git tag --list '[0-9]*' --sort=-v:refname | head -n1)
+          # Use gh to list releases (authoritative, includes tags from previous runs)
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG=$(git tag --list '[0-9]*' --sort=-v:refname | head -n1)
+          fi
 
           if [ -n "$LATEST_TAG" ]; then
             CURRENT_MAJOR=$(echo "$LATEST_TAG" | cut -d. -f1)
@@ -148,6 +152,12 @@ jobs:
             NEXT_PATCH=$(( CURRENT_PATCH + 1 ))
             TAG="${MAJOR}.${ENCODED_MINOR}.${NEXT_PATCH}"
           fi
+
+          # Safety: if this tag already exists, bump patch until unique
+          while git tag --list "$TAG" | grep -q . || gh release view "$TAG" &>/dev/null; do
+            PATCH=$(echo "$TAG" | cut -d. -f3)
+            TAG="$(echo "$TAG" | cut -d. -f1-2).$((PATCH + 1))"
+          done
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG (@untitledui/icons v$UNTITLED_VERSION)"
