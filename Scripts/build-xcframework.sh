@@ -1,12 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 
-# Build UntitledUIIcons.xcframework for all Apple platforms
+# Build UntitledUIIcons.xcframework for all available Apple platforms
 #
 # Usage:
-#   ./Scripts/build-xcframework.sh [--output <dir>]
+#   ./Scripts/build-xcframework.sh [<output-dir>]
 #
-# Requires Xcode with all platform SDKs installed.
+# Platforms without installed SDKs are skipped automatically.
 
 OUTPUT_DIR="${1:-build}"
 SCHEME="UntitledUIIcons"
@@ -17,7 +17,6 @@ DERIVED_DATA="$OUTPUT_DIR/DerivedData"
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR"
 
-# Platforms: destination → archive path
 declare -a ARCHIVES=()
 
 build_archive() {
@@ -26,7 +25,7 @@ build_archive() {
   local archive="$OUTPUT_DIR/$platform.xcarchive"
 
   echo "Building for $platform..."
-  xcodebuild archive \
+  if xcodebuild archive \
     -scheme "$SCHEME" \
     -destination "$destination" \
     -archivePath "$archive" \
@@ -35,24 +34,35 @@ build_archive() {
     SKIP_INSTALL=NO \
     BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
     OTHER_SWIFT_FLAGS="-no-verify-emitted-module-interface" \
-    2>&1 | tail -1
-
-  ARCHIVES+=("-archive" "$archive" "-framework" "$FRAMEWORK_NAME.framework")
+    2>&1 | tee /tmp/xc-$platform.log | tail -1; then
+    ARCHIVES+=("-archive" "$archive" "-framework" "$FRAMEWORK_NAME.framework")
+  else
+    echo "  Skipped $platform (build failed — SDK may not be installed)"
+    echo "  Last error: $(grep -E 'error:' /tmp/xc-$platform.log | tail -1)"
+  fi
 }
 
+# Always available on macOS
 build_archive "ios-device"       "generic/platform=iOS"
 build_archive "ios-simulator"    "generic/platform=iOS Simulator"
 build_archive "macos"            "generic/platform=macOS"
 build_archive "mac-catalyst"     "generic/platform=macOS,variant=Mac Catalyst"
-build_archive "watchos-device"   "generic/platform=watchOS"
+
+# May require additional SDK downloads
+build_archive "watchos-device"    "generic/platform=watchOS"
 build_archive "watchos-simulator" "generic/platform=watchOS Simulator"
-build_archive "tvos-device"      "generic/platform=tvOS"
-build_archive "tvos-simulator"   "generic/platform=tvOS Simulator"
-build_archive "visionos-device"  "generic/platform=visionOS"
+build_archive "tvos-device"       "generic/platform=tvOS"
+build_archive "tvos-simulator"    "generic/platform=tvOS Simulator"
+build_archive "visionos-device"   "generic/platform=visionOS"
 build_archive "visionos-simulator" "generic/platform=visionOS Simulator"
 
+if [ ${#ARCHIVES[@]} -eq 0 ]; then
+  echo "Error: No platforms built successfully."
+  exit 1
+fi
+
 echo ""
-echo "Creating XCFramework..."
+echo "Creating XCFramework (${#ARCHIVES[@]} slices)..."
 rm -rf "$OUTPUT_DIR/$XCFRAMEWORK"
 xcodebuild -create-xcframework \
   "${ARCHIVES[@]}" \
