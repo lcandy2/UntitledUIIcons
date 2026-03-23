@@ -35,7 +35,14 @@ build_archive() {
     BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
     OTHER_SWIFT_FLAGS="-no-verify-emitted-module-interface" \
     2>&1 | tee /tmp/xc-$platform.log | tail -1; then
-    ARCHIVES+=("-archive" "$archive" "-framework" "$FRAMEWORK_NAME.framework")
+    # Find the framework — path varies by Xcode version and platform
+    local fw_path
+    fw_path=$(find "$archive" -name "$FRAMEWORK_NAME.framework" -type d | head -1)
+    if [ -n "$fw_path" ]; then
+      ARCHIVES+=("-archive" "$archive" "-framework" "$FRAMEWORK_NAME.framework")
+    else
+      echo "  Skipped $platform (archive succeeded but no framework found)"
+    fi
   else
     echo "  Skipped $platform (build failed — SDK may not be installed)"
     echo "  Last error: $(grep -E 'error:' /tmp/xc-$platform.log | tail -1)"

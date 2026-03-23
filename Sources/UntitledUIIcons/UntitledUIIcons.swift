@@ -33,7 +33,11 @@ extension UIImage {
     /// let image = UIImage(untitledUI: .heart)
     /// ```
     public convenience init?(untitledUI symbol: UntitledUIIcon) {
+        #if os(watchOS)
+        self.init(named: symbol.rawValue, in: .module, with: nil)
+        #else
         self.init(named: symbol.rawValue, in: .module, compatibleWith: nil)
+        #endif
     }
 }
 #endif
