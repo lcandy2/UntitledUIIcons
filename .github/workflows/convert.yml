@@ -92,11 +92,15 @@ jobs:
         if: needs.convert.result == 'success'
         id: changes
         run: |
-          LATEST_TAG=$(git tag --list '[0-9]*' --sort=-v:refname | head -n1)
+          LATEST_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null || true)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG=$(git tag --list '[0-9]*' --sort=-v:refname | head -n1)
+          fi
+
           if [ -z "$LATEST_TAG" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "No existing release found, will create first release."
-          elif ! git diff --quiet "$LATEST_TAG" -- Symbols/ Sources/; then
+          elif ! git diff --quiet "$LATEST_TAG" -- Symbols/ Sources/ Package.swift Scripts/; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Changes detected since $LATEST_TAG."
           else
