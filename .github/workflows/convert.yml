@@ -166,10 +166,6 @@ jobs:
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "Release tag: $TAG (@untitledui/icons v$UNTITLED_VERSION)"
 
-      - name: Build XCFramework
-        if: steps.changes.outputs.changed == 'true'
-        run: ./Scripts/build-xcframework.sh build
-
       - name: Commit and push
         if: steps.changes.outputs.changed == 'true'
         run: |
@@ -178,24 +174,8 @@ jobs:
           git add Symbols/ Sources/
           if ! git diff --cached --quiet; then
             git commit -m "Update symbols — ${{ steps.version.outputs.tag }}"
+            git push
           fi
-
-      - name: Update Package.swift with binary target
-        if: steps.changes.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          RELEASE_TAG="${{ steps.version.outputs.tag }}"
-          CHECKSUM=$(swift package compute-checksum build/UntitledUIIcons.xcframework.zip)
-          REPO="${{ github.repository }}"
-          URL="https://github.com/${REPO}/releases/download/${RELEASE_TAG}/UntitledUIIcons.xcframework.zip"
-
-          # Update Package.swift: replace the nil binaryTarget with actual values
-          sed -i '' "s|^let binaryTarget: Target? = nil|let binaryTarget: Target? = .binaryTarget(name: \"UntitledUIIconsBinary\", url: \"${URL}\", checksum: \"${CHECKSUM}\")|" Package.swift
-
-          git add Package.swift
-          git commit --amend --no-edit
-          git push
 
       - name: Create release
         if: steps.changes.outputs.changed == 'true'
@@ -218,18 +198,6 @@ jobs:
           https://github.com/lcandy2/UntitledUIIcons.git
           ```
 
-          ### Source (build from source)
-          ```swift
-          .product(name: "UntitledUIIcons", package: "UntitledUIIcons")
-          ```
-
-          ### Binary (pre-compiled, zero build time)
-          ```swift
-          .product(name: "UntitledUIIconsBinary", package: "UntitledUIIcons")
-          ```
-
-          Both use `import UntitledUIIcons`.
-
           ## Usage
           ```swift
           import UntitledUIIcons
@@ -245,5 +213,4 @@ jobs:
           gh release create "$RELEASE_TAG" \
             --title "UntitledUIIcons $RELEASE_TAG (@untitledui/icons v$UNTITLED_VERSION)" \
             --notes-file /tmp/release-notes.md \
-            UntitledUIIcons-symbols.zip \
-            build/UntitledUIIcons.xcframework.zip
+            UntitledUIIcons-symbols.zip
