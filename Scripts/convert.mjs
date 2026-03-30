@@ -136,18 +136,23 @@ function extractSVG(mjsContent) {
 
   if (elements.length === 0) return null;
 
-  // Compute tight viewBox from path bounding boxes
+  // Compute tight viewBox from path bounding boxes.
+  // The viewBox must remain square so that swiftdraw maps the content into the
+  // SF Symbol grid without distorting the original aspect ratio.
   const STROKE_WIDTH = 2;
   const bbox = computeBBox(elements);
   let vb = "0 0 24 24";
   if (bbox) {
-    // Expand by half stroke-width to account for stroke overflow
     const pad = STROKE_WIDTH / 2;
-    const x = bbox.minX - pad;
-    const y = bbox.minY - pad;
-    const w = bbox.maxX - bbox.minX + STROKE_WIDTH;
-    const h = bbox.maxY - bbox.minY + STROKE_WIDTH;
-    vb = `${x} ${y} ${w} ${h}`;
+    const rawW = bbox.maxX - bbox.minX + STROKE_WIDTH;
+    const rawH = bbox.maxY - bbox.minY + STROKE_WIDTH;
+    // Use the larger dimension for both axes to keep a 1:1 viewBox
+    const side = Math.max(rawW, rawH);
+    const cx = (bbox.minX + bbox.maxX) / 2;
+    const cy = (bbox.minY + bbox.maxY) / 2;
+    const x = cx - side / 2;
+    const y = cy - side / 2;
+    vb = `${x} ${y} ${side} ${side}`;
   }
 
   // Build SVG string with tight viewBox
@@ -208,6 +213,84 @@ function convertSVG(inputSvg, outputSvg) {
   } catch {
     return false;
   }
+}
+
+// ---------------------------------------------------------------------------
+// HTML gallery page generation
+// ---------------------------------------------------------------------------
+
+function generateHTMLPage(iconNames, outPath) {
+  const json = JSON.stringify(iconNames);
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Untitled UI Icons</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#fafafa;color:#111}
+.header{position:sticky;top:0;background:#fff;border-bottom:1px solid #e5e5e5;padding:16px 24px;z-index:10}
+.header h1{font-size:20px;font-weight:600;margin-bottom:12px}
+.toolbar{display:flex;align-items:center;gap:12px}
+.toolbar input{flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;outline:none}
+.toolbar input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+.count{font-size:13px;color:#6b7280;white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;padding:24px}
+.card{background:#fff;border:1px solid #e5e5e5;border-radius:10px;padding:14px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.card:hover{border-color:#6366f1;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card img{width:28px;height:28px}
+.card .name{font-size:10px;color:#6b7280;text-align:center;word-break:break-all;line-height:1.3}
+.actions{display:none;gap:4px;margin-top:2px}
+.card:hover .actions{display:flex}
+.actions a{font-size:10px;padding:2px 8px;border-radius:4px;text-decoration:none;color:#6366f1;background:#eef2ff;font-weight:500}
+.actions a:hover{background:#6366f1;color:#fff}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>Untitled UI Icons</h1>
+  <div class="toolbar">
+    <input type="text" id="q" placeholder="Search icons\u2026" autofocus>
+    <span class="count" id="count"></span>
+  </div>
+</div>
+<div class="grid" id="grid"></div>
+<div class="toast" id="toast"></div>
+<script>
+const icons=${json};
+const grid=document.getElementById("grid");
+const q=document.getElementById("q");
+const countEl=document.getElementById("count");
+const toastEl=document.getElementById("toast");
+let tid;
+function render(f){
+  const list=f?icons.filter(n=>n.includes(f)):icons;
+  countEl.textContent=list.length+" / "+icons.length;
+  grid.innerHTML=list.map(n=>'<div class="card" onclick="copy(\\''+n+'\\')">'+
+    '<img src="SVGs/'+n+'.svg" loading="lazy" alt="'+n+'">'+
+    '<div class="name">'+n+'</div>'+
+    '<div class="actions">'+
+    '<a href="SVGs/'+n+'.svg" download="'+n+'.svg" onclick="event.stopPropagation()">SVG</a>'+
+    '<a href="Symbols/'+n+'.svg" download="'+n+'.sfsymbol.svg" onclick="event.stopPropagation()">SF\u00a0Symbol</a>'+
+    '</div></div>').join("");
+}
+function copy(n){
+  navigator.clipboard.writeText(n);
+  toastEl.textContent="Copied \\u201c"+n+"\\u201d";
+  toastEl.classList.add("show");
+  clearTimeout(tid);
+  tid=setTimeout(()=>toastEl.classList.remove("show"),1500);
+}
+q.addEventListener("input",e=>render(e.target.value.toLowerCase()));
+render("");
+</script>
+</body>
+</html>
+`;
+  writeFileSync(outPath, html);
 }
 
 // ---------------------------------------------------------------------------
@@ -346,6 +429,23 @@ ${properties.join("\n\n")}
 
 writeFileSync(swiftOutPath, swift);
 
+// Step 5: Save extracted SVGs for web preview / download
+console.log("Saving extracted SVGs...");
+const svgsDir = join(ROOT, "SVGs");
+rmSync(svgsDir, { recursive: true, force: true });
+mkdirSync(svgsDir, { recursive: true });
+
+for (const icon of icons) {
+  if (convertedNames.includes(icon.kebabName)) {
+    copyFileSync(icon.svgPath, join(svgsDir, `${icon.kebabName}.svg`));
+  }
+}
+
+// Step 6: Generate HTML gallery page
+console.log("Generating HTML gallery...");
+const htmlPath = join(ROOT, "index.html");
+generateHTMLPage(convertedNames, htmlPath);
+
 // Cleanup
 rmSync(extractedDir, { recursive: true, force: true });
 rmSync(join(ROOT, ".tmp-untitledui"), { recursive: true, force: true });
@@ -353,5 +453,7 @@ rmSync(join(ROOT, ".tmp-untitledui"), { recursive: true, force: true });
 console.log();
 console.log(`Done! Converted ${total} symbols (${failed} failed)`);
 console.log(`  Symbols: ${symbolsDir}/`);
+console.log(`  SVGs:    ${svgsDir}/`);
 console.log(`  Assets:  ${xcassetsDir}/`);
 console.log(`  Swift:   ${swiftOutPath}`);
+console.log(`  HTML:    ${htmlPath}`);
