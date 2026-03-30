@@ -236,6 +236,12 @@ extension UntitledUIIcon {
 	/// `arrow-narrow-up-right`
 	static public let arrow_narrow_up_right = UntitledUIIcon(identifier: "arrow-narrow-up-right")
 
+	/// `arrow-next`
+	static public let arrow_next = UntitledUIIcon(identifier: "arrow-next")
+
+	/// `arrow-previous`
+	static public let arrow_previous = UntitledUIIcon(identifier: "arrow-previous")
+
 	/// `arrow-right`
 	static public let arrow_right = UntitledUIIcon(identifier: "arrow-right")
 
@@ -706,6 +712,18 @@ extension UntitledUIIcon {
 
 	/// `chevron-left-double`
 	static public let chevron_left_double = UntitledUIIcon(identifier: "chevron-left-double")
+
+	/// `chevron-next`
+	static public let chevron_next = UntitledUIIcon(identifier: "chevron-next")
+
+	/// `chevron-next-double`
+	static public let chevron_next_double = UntitledUIIcon(identifier: "chevron-next-double")
+
+	/// `chevron-previous`
+	static public let chevron_previous = UntitledUIIcon(identifier: "chevron-previous")
+
+	/// `chevron-previous-double`
+	static public let chevron_previous_double = UntitledUIIcon(identifier: "chevron-previous-double")
 
 	/// `chevron-right`
 	static public let chevron_right = UntitledUIIcon(identifier: "chevron-right")
