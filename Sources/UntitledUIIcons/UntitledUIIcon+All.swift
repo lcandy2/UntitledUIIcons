@@ -3551,6 +3551,9 @@ extension UntitledUIIcon {
 	/// `heart.filled`
 	static public let heart_filled = UntitledUIIcon(identifier: "heart.filled")
 
+	/// `home02.filled`
+	static public let home02_filled = UntitledUIIcon(identifier: "home02.filled")
+
 	/// `lock-unlocked03.filled`
 	static public let lock_unlocked03_filled = UntitledUIIcon(identifier: "lock-unlocked03.filled")
 
