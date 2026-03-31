@@ -3545,9 +3545,9 @@ extension UntitledUIIcon {
 	/// `zoom-out`
 	static public let zoom_out = UntitledUIIcon(identifier: "zoom-out")
 
-	/// `lock-unlocked03-filled`
-	static public let lock_unlocked03_filled = UntitledUIIcon(identifier: "lock-unlocked03-filled")
+	/// `lock-unlocked03.filled`
+	static public let lock_unlocked03_filled = UntitledUIIcon(identifier: "lock-unlocked03.filled")
 
-	/// `lock03-filled`
-	static public let lock03_filled = UntitledUIIcon(identifier: "lock03-filled")
+	/// `lock03.filled`
+	static public let lock03_filled = UntitledUIIcon(identifier: "lock03.filled")
 }

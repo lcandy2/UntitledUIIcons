@@ -191,7 +191,7 @@ function pascalToKebab(name) {
 }
 
 function toSwiftName(kebab) {
-  return kebab.replace(/-/g, "_");
+  return kebab.replace(/[-.]/g, "_");
 }
 
 const SWIFT_KEYWORDS = new Set([

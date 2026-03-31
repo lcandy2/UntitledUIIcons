@@ -8,8 +8,9 @@ Custom SVG icons that replace or extend the upstream `@untitledui/icons` package
 
 ```
 Overrides/
-├── lock03-filled.svg         ← replaces upstream lock03 (same name = replace)
-├── my-custom-icon.svg        ← new name = added as new icon
+├── lock03.filled.svg         ← new variant (dot-separated state)
+├── lock03.svg                ← same name as upstream = replace
+├── my-custom-icon.svg        ← new icon
 └── .gitkeep
 ```
 

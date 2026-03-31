@@ -50,4 +50,4 @@ swiftdraw processes Layer 2 identically to the original outline icon, so margin 
 
 - SF Symbol guides: ✅ identical to outline version
 - Visual: ✅ solid body + stroked shackle
-- Swift API: `Image(untitledUI: .lock03_filled)`
+- Swift API: `Image(untitledUI: .lock03_filled)` (identifier: `lock03.filled`)
