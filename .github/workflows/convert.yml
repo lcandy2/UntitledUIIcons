@@ -100,7 +100,7 @@ jobs:
           if [ -z "$LATEST_TAG" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "No existing release found, will create first release."
-          elif ! git diff --quiet "$LATEST_TAG" -- Symbols/ Sources/ Package.swift Scripts/; then
+          elif ! git diff --quiet "$LATEST_TAG" -- Symbols/ SVGs/ Sources/ Package.swift Scripts/; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Changes detected since $LATEST_TAG."
           else
@@ -171,7 +171,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Symbols/ Sources/
+          git add Symbols/ Sources/ SVGs/ index.html
           if ! git diff --cached --quiet; then
             git commit -m "Update symbols — ${{ steps.version.outputs.tag }}"
             git push
