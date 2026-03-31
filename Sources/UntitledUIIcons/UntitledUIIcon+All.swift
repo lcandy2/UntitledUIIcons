@@ -3545,15 +3545,6 @@ extension UntitledUIIcon {
 	/// `zoom-out`
 	static public let zoom_out = UntitledUIIcon(identifier: "zoom-out")
 
-	/// `bookmark.filled`
-	static public let bookmark_filled = UntitledUIIcon(identifier: "bookmark.filled")
-
-	/// `grid01.filled`
-	static public let grid01_filled = UntitledUIIcon(identifier: "grid01.filled")
-
-	/// `heart-rounded.filled`
-	static public let heart_rounded_filled = UntitledUIIcon(identifier: "heart-rounded.filled")
-
 	/// `heart.filled`
 	static public let heart_filled = UntitledUIIcon(identifier: "heart.filled")
 
@@ -3568,4 +3559,13 @@ extension UntitledUIIcon {
 
 	/// `user-circle.filled`
 	static public let user_circle_filled = UntitledUIIcon(identifier: "user-circle.filled")
+
+	/// `bookmark.filled`
+	static public let bookmark_filled = UntitledUIIcon(identifier: "bookmark.filled")
+
+	/// `grid01.filled`
+	static public let grid01_filled = UntitledUIIcon(identifier: "grid01.filled")
+
+	/// `heart-rounded.filled`
+	static public let heart_rounded_filled = UntitledUIIcon(identifier: "heart-rounded.filled")
 }

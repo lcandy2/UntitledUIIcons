@@ -225,6 +225,23 @@ function convertSVG(inputSvg, outputSvg) {
   }
 }
 
+/**
+ * Create a filled SF Symbol by taking an outline SF Symbol and stripping
+ * inner contour subpaths. Each stroked shape becomes outer+inner contour
+ * pair; keeping only the outer contour makes it solid filled.
+ */
+function createFilledSymbol(outlineSvgPath, filledSvgPath) {
+  let svg = readFileSync(outlineSvgPath, "utf-8");
+  // Match <path d="..."> inside symbol groups, strip inner contours
+  svg = svg.replace(/(<path d=")([^"]+)(")/g, (match, pre, d, post) => {
+    const subpaths = d.split(/(?<=Z)\s*(?=M)/);
+    if (subpaths.length <= 1) return match;
+    const outerOnly = subpaths.filter((_, i) => i % 2 === 0).join(" ");
+    return pre + outerOnly + post;
+  });
+  writeFileSync(filledSvgPath, svg);
+}
+
 // ---------------------------------------------------------------------------
 // HTML gallery page generation
 // ---------------------------------------------------------------------------
@@ -433,8 +450,27 @@ let total = 0;
 let failed = 0;
 const convertedNames = [];
 
+const filledFromOutline = []; // filled icons to derive from their outline version
+
 for (const icon of icons) {
   const outFile = join(symbolsDir, `${icon.kebabName}.svg`);
+
+  // Check if this is a simple .filled icon that can be derived from its outline
+  const filledMatch = icon.kebabName.match(/^(.+)\.filled$/);
+  if (filledMatch) {
+    // Only derive from outline if the override is a simple fill (single path,
+    // no evenodd, no multiple elements). Complex overrides (cutouts, compound
+    // icons) must go through normal swiftdraw conversion.
+    const overrideSvg = readFileSync(icon.svgPath, "utf-8");
+    const isSimpleFill = !overrideSvg.includes("evenodd") &&
+      (overrideSvg.match(/<path /g) || []).length === 1;
+    if (isSimpleFill) {
+      const baseName = filledMatch[1];
+      const baseOutline = join(symbolsDir, `${baseName}.svg`);
+      filledFromOutline.push({ icon, outFile, baseOutline, baseName });
+      continue;
+    }
+  }
 
   if (convertSVG(icon.svgPath, outFile)) {
     createSymbolset(xcassetsDir, icon.kebabName, outFile);
@@ -444,6 +480,26 @@ for (const icon of icons) {
     console.log(`  Failed: ${icon.kebabName}`);
     failed++;
   }
+}
+
+// Derive filled symbols from their outline counterparts
+for (const { icon, outFile, baseOutline, baseName } of filledFromOutline) {
+  if (!existsSync(baseOutline)) {
+    // No outline version yet — fall back to normal conversion
+    if (convertSVG(icon.svgPath, outFile)) {
+      createSymbolset(xcassetsDir, icon.kebabName, outFile);
+      convertedNames.push(icon.kebabName);
+      total++;
+    } else {
+      console.log(`  Failed: ${icon.kebabName}`);
+      failed++;
+    }
+    continue;
+  }
+  createFilledSymbol(baseOutline, outFile);
+  createSymbolset(xcassetsDir, icon.kebabName, outFile);
+  convertedNames.push(icon.kebabName);
+  total++;
 }
 
 // Step 4: Generate Swift source
