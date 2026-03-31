@@ -130,4 +130,4 @@ Using one path with `fill="black"` and inherited stroke avoids the inner stroke 
 | `lock03.filled.svg` | `.lock03_filled` | C | Body filled, shackle stroked |
 | `lock-unlocked03.filled.svg` | `.lock_unlocked03_filled` | C | Body filled, open shackle stroked |
 | `home02.filled.svg` | `.home02_filled` | B | House filled, door cutout (evenodd) |
-| `user-circle.filled.svg` | `.user_circle_filled` | B+C | Circle filled (evenodd cutout) + full stroke |
+| `user-circle.filled.svg` | `.user_circle_filled` | B | Circle filled (evenodd cutout) + outer circle stroke only |
