@@ -3548,6 +3548,9 @@ extension UntitledUIIcon {
 	/// `bookmark.filled`
 	static public let bookmark_filled = UntitledUIIcon(identifier: "bookmark.filled")
 
+	/// `heart-rounded.filled`
+	static public let heart_rounded_filled = UntitledUIIcon(identifier: "heart-rounded.filled")
+
 	/// `heart.filled`
 	static public let heart_filled = UntitledUIIcon(identifier: "heart.filled")
 
