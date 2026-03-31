@@ -115,18 +115,31 @@ The **default strategy** for most icons. Two layers:
 
 For simple icons (heart, bookmark), both layers use the same `d`. For compound icons (lock), Layer 1 uses only the closed body subpath.
 
-### ❌ Strategy A: Single path with `fill="black"` (deprecated)
+### Strategy A: Single fill-only path (for simple shapes)
 
-Using one path with `fill="black"` and inherited stroke avoids the inner stroke artifact but causes **guide misalignment** — swiftdraw treats fill+stroke paths differently from stroke-only, producing different margin positions.
+Single `<path>` with `fill="black" stroke="none"`. Generates **one path** per SF Symbol weight group — no extra outlines that leak through template rendering.
+
+```svg
+<!-- heart-rounded.filled.svg -->
+<path d="M16.111 3C19.633...3Z" fill="black" stroke="none"/>
+```
+
+**When to use:** Simple icons with no internal details (heart, bookmark, grid). The entire icon is one solid shape.
+
+**Trade-off:** Guides may differ slightly from the outline version. Acceptable because the alternative (Strategy C) produces visible inner stroke artifacts when rendered as a template image.
+
+### Why Strategy C fails for simple filled icons
+
+SF Symbol templates store ALL `<path>` elements per weight group. When the app renders with `alwaysTemplate`, every path becomes opaque. The stroke overlay's inner contour shows as a visible outline on top of the fill — defeating the purpose of "filled".
 
 ## Existing Filled Variants
 
 | Override file | Swift property | Strategy | Notes |
 |---|---|---|---|
-| `heart.filled.svg` | `.heart_filled` | C | Fill underlay + full stroke |
-| `heart-rounded.filled.svg` | `.heart_rounded_filled` | C | Fill underlay + full stroke |
-| `bookmark.filled.svg` | `.bookmark_filled` | C | Fill underlay + full stroke |
-| `grid01.filled.svg` | `.grid01_filled` | A | 4 closed subpaths, fill+stroke |
+| `heart.filled.svg` | `.heart_filled` | A | Single fill path |
+| `heart-rounded.filled.svg` | `.heart_rounded_filled` | A | Single fill path |
+| `bookmark.filled.svg` | `.bookmark_filled` | A | Single fill path |
+| `grid01.filled.svg` | `.grid01_filled` | A | Single fill path, 4 closed subpaths |
 | `lock03.filled.svg` | `.lock03_filled` | C | Body filled, shackle stroked |
 | `lock-unlocked03.filled.svg` | `.lock_unlocked03_filled` | C | Body filled, open shackle stroked |
 | `home02.filled.svg` | `.home02_filled` | B | House filled, door cutout (evenodd) |
