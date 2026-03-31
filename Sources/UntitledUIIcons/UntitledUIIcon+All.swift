@@ -3545,27 +3545,9 @@ extension UntitledUIIcon {
 	/// `zoom-out`
 	static public let zoom_out = UntitledUIIcon(identifier: "zoom-out")
 
-	/// `heart.filled`
-	static public let heart_filled = UntitledUIIcon(identifier: "heart.filled")
-
-	/// `home02.filled`
-	static public let home02_filled = UntitledUIIcon(identifier: "home02.filled")
-
 	/// `lock-unlocked03.filled`
 	static public let lock_unlocked03_filled = UntitledUIIcon(identifier: "lock-unlocked03.filled")
 
 	/// `lock03.filled`
 	static public let lock03_filled = UntitledUIIcon(identifier: "lock03.filled")
-
-	/// `user-circle.filled`
-	static public let user_circle_filled = UntitledUIIcon(identifier: "user-circle.filled")
-
-	/// `bookmark.filled`
-	static public let bookmark_filled = UntitledUIIcon(identifier: "bookmark.filled")
-
-	/// `grid01.filled`
-	static public let grid01_filled = UntitledUIIcon(identifier: "grid01.filled")
-
-	/// `heart-rounded.filled`
-	static public let heart_rounded_filled = UntitledUIIcon(identifier: "heart-rounded.filled")
 }
