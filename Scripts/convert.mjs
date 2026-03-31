@@ -108,37 +108,10 @@ function computeBBox(elements) {
   return isFinite(minX) ? { minX, minY, maxX, maxY } : null;
 }
 
-function extractSVG(mjsContent) {
-  // Match all createElement calls for child elements (path, circle, etc.)
-  // Pattern: createElement("tag", {attrs})
-  const childPattern = /createElement\("(\w+)",\s*\{([^}]*)\}\)/g;
-  const elements = [];
-  let match;
-
-  while ((match = childPattern.exec(mjsContent)) !== null) {
-    const tag = match[1];
-    if (tag === "svg") continue; // skip the root svg
-
-    const attrsStr = match[2];
-    const attrs = {};
-
-    // Parse attribute key-value pairs from the minified object literal
-    // Handles: key:"value", key:"value with spaces", and unquoted keys
-    for (const am of attrsStr.matchAll(/(\w+):\s*"([^"]*)"/g)) {
-      const key = am[1];
-      const value = am[2];
-      const svgKey = JSX_TO_SVG_ATTRS[key] || key;
-      attrs[svgKey] = value;
-    }
-
-    elements.push({ tag, attrs });
-  }
-
+/** Build processed (tight viewBox) and original (24×24) SVG pair from elements. */
+function buildSVGPair(elements) {
   if (elements.length === 0) return null;
 
-  // Compute tight viewBox to remove padding while preserving the content's
-  // original aspect ratio. width/height match the viewBox so swiftdraw sees
-  // a consistent aspect ratio and won't stretch.
   const STROKE_WIDTH = 2;
   const bbox = computeBBox(elements);
   let vbW = 24, vbH = 24;
@@ -152,18 +125,58 @@ function extractSVG(mjsContent) {
     vb = `${x} ${y} ${vbW} ${vbH}`;
   }
 
-  // Build SVG string — width/height follow viewBox aspect ratio
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${vbW}" height="${vbH}" fill="none" stroke="black" stroke-width="${STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round">\n`;
-
+  let children = "";
   for (const el of elements) {
     const attrStr = Object.entries(el.attrs)
       .map(([k, v]) => `${k}="${v}"`)
       .join(" ");
-    svg += `  <${el.tag} ${attrStr}/>\n`;
+    children += `  <${el.tag} ${attrStr}/>\n`;
   }
 
-  svg += `</svg>\n`;
-  return svg;
+  const svgAttrs = `fill="none" stroke="black" stroke-width="${STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round"`;
+  const processed = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${vbW}" height="${vbH}" ${svgAttrs}>\n${children}</svg>\n`;
+  const original = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" ${svgAttrs}>\n${children}</svg>\n`;
+  return { processed, original };
+}
+
+/** Extract SVG from a React component (.mjs) file. */
+function extractSVG(mjsContent) {
+  const childPattern = /createElement\("(\w+)",\s*\{([^}]*)\}\)/g;
+  const elements = [];
+  let match;
+
+  while ((match = childPattern.exec(mjsContent)) !== null) {
+    const tag = match[1];
+    if (tag === "svg") continue;
+
+    const attrsStr = match[2];
+    const attrs = {};
+    for (const am of attrsStr.matchAll(/(\w+):\s*"([^"]*)"/g)) {
+      const key = am[1];
+      const value = am[2];
+      const svgKey = JSX_TO_SVG_ATTRS[key] || key;
+      attrs[svgKey] = value;
+    }
+    elements.push({ tag, attrs });
+  }
+
+  return buildSVGPair(elements);
+}
+
+/** Parse a raw SVG file (e.g. from Overrides/) into the same pair format. */
+function parseSVGFile(svgContent) {
+  const elements = [];
+  const tagPattern = /<(path|circle|ellipse|rect|line|polyline|polygon)\s([^>]*?)\/>/g;
+  let match;
+  while ((match = tagPattern.exec(svgContent)) !== null) {
+    const tag = match[1];
+    const attrs = {};
+    for (const am of match[2].matchAll(/([\w-]+)="([^"]*)"/g)) {
+      attrs[am[1]] = am[2];
+    }
+    elements.push({ tag, attrs });
+  }
+  return buildSVGPair(elements);
 }
 
 // ---------------------------------------------------------------------------
@@ -267,10 +280,11 @@ function render(f){
   const list=f?icons.filter(n=>n.includes(f)):icons;
   countEl.textContent=list.length+" / "+icons.length;
   grid.innerHTML=list.map(n=>'<div class="card" onclick="copy(\\''+n+'\\')">'+
-    '<img src="SVGs/'+n+'.svg" loading="lazy" alt="'+n+'">'+
+    '<img src="SVGs/processed/'+n+'.svg" loading="lazy" alt="'+n+'">'+
     '<div class="name">'+n+'</div>'+
     '<div class="actions">'+
-    '<a href="SVGs/'+n+'.svg" download="'+n+'.svg" onclick="event.stopPropagation()">SVG</a>'+
+    '<a href="SVGs/original/'+n+'.svg" download="'+n+'.svg" onclick="event.stopPropagation()">SVG</a>'+
+    '<a href="SVGs/processed/'+n+'.svg" download="'+n+'.trimmed.svg" onclick="event.stopPropagation()">Trimmed</a>'+
     '<a href="Symbols/'+n+'.svg" download="'+n+'.sfsymbol.svg" onclick="event.stopPropagation()">SF\u00a0Symbol</a>'+
     '</div></div>').join("");
 }
@@ -356,19 +370,48 @@ const icons = [];
 for (const file of mjsFiles) {
   const pascalName = basename(file, ".mjs");
   const content = readFileSync(join(distDir, file), "utf-8");
-  const svg = extractSVG(content);
-  if (!svg) {
+  const result = extractSVG(content);
+  if (!result) {
     console.log(`  Skipped (no SVG): ${pascalName}`);
     continue;
   }
 
   const kebabName = pascalToKebab(pascalName);
   const svgPath = join(extractedDir, `${kebabName}.svg`);
-  writeFileSync(svgPath, svg);
-  icons.push({ pascalName, kebabName, svgPath });
+  writeFileSync(svgPath, result.processed);
+  icons.push({ pascalName, kebabName, svgPath, originalSvg: result.original });
 }
 
 console.log(`  Extracted ${icons.length} SVGs`);
+
+// Step 1.5: Apply overrides from Overrides/ directory
+const overridesDir = join(ROOT, "Overrides");
+if (existsSync(overridesDir)) {
+  const overrideFiles = readdirSync(overridesDir).filter((f) => f.endsWith(".svg"));
+  let applied = 0;
+  for (const file of overrideFiles) {
+    const kebabName = basename(file, ".svg");
+    const svgContent = readFileSync(join(overridesDir, file), "utf-8");
+    const result = parseSVGFile(svgContent);
+    if (!result) {
+      console.log(`  Override skipped (no paths): ${kebabName}`);
+      continue;
+    }
+
+    const svgPath = join(extractedDir, `${kebabName}.svg`);
+    writeFileSync(svgPath, result.processed);
+
+    const idx = icons.findIndex((i) => i.kebabName === kebabName);
+    if (idx >= 0) {
+      icons[idx].svgPath = svgPath;
+      icons[idx].originalSvg = result.original;
+    } else {
+      icons.push({ pascalName: kebabName, kebabName, svgPath, originalSvg: result.original });
+    }
+    applied++;
+  }
+  if (applied > 0) console.log(`  Applied ${applied} override(s)`);
+}
 
 // Step 2: Prepare output directories
 const xcassetsDir = join(outputDir, "Resources", "UntitledUIIcons.xcassets");
@@ -430,11 +473,15 @@ writeFileSync(swiftOutPath, swift);
 console.log("Saving extracted SVGs...");
 const svgsDir = join(ROOT, "SVGs");
 rmSync(svgsDir, { recursive: true, force: true });
-mkdirSync(svgsDir, { recursive: true });
+const svgsOriginalDir = join(svgsDir, "original");
+const svgsProcessedDir = join(svgsDir, "processed");
+mkdirSync(svgsOriginalDir, { recursive: true });
+mkdirSync(svgsProcessedDir, { recursive: true });
 
 for (const icon of icons) {
   if (convertedNames.includes(icon.kebabName)) {
-    copyFileSync(icon.svgPath, join(svgsDir, `${icon.kebabName}.svg`));
+    copyFileSync(icon.svgPath, join(svgsProcessedDir, `${icon.kebabName}.svg`));
+    writeFileSync(join(svgsOriginalDir, `${icon.kebabName}.svg`), icon.originalSvg);
   }
 }
 

@@ -47,10 +47,11 @@ function render(f){
   const list=f?icons.filter(n=>n.includes(f)):icons;
   countEl.textContent=list.length+" / "+icons.length;
   grid.innerHTML=list.map(n=>'<div class="card" onclick="copy(\''+n+'\')">'+
-    '<img src="SVGs/'+n+'.svg" loading="lazy" alt="'+n+'">'+
+    '<img src="SVGs/processed/'+n+'.svg" loading="lazy" alt="'+n+'">'+
     '<div class="name">'+n+'</div>'+
     '<div class="actions">'+
-    '<a href="SVGs/'+n+'.svg" download="'+n+'.svg" onclick="event.stopPropagation()">SVG</a>'+
+    '<a href="SVGs/original/'+n+'.svg" download="'+n+'.svg" onclick="event.stopPropagation()">SVG</a>'+
+    '<a href="SVGs/processed/'+n+'.svg" download="'+n+'.trimmed.svg" onclick="event.stopPropagation()">Trimmed</a>'+
     '<a href="Symbols/'+n+'.svg" download="'+n+'.sfsymbol.svg" onclick="event.stopPropagation()">SF Symbol</a>'+
     '</div></div>').join("");
 }
