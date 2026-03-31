@@ -136,27 +136,24 @@ function extractSVG(mjsContent) {
 
   if (elements.length === 0) return null;
 
-  // Compute tight viewBox from path bounding boxes.
-  // The viewBox must remain square so that swiftdraw maps the content into the
-  // SF Symbol grid without distorting the original aspect ratio.
+  // Compute tight viewBox to remove padding while preserving the content's
+  // original aspect ratio. width/height match the viewBox so swiftdraw sees
+  // a consistent aspect ratio and won't stretch.
   const STROKE_WIDTH = 2;
   const bbox = computeBBox(elements);
+  let vbW = 24, vbH = 24;
   let vb = "0 0 24 24";
   if (bbox) {
     const pad = STROKE_WIDTH / 2;
-    const rawW = bbox.maxX - bbox.minX + STROKE_WIDTH;
-    const rawH = bbox.maxY - bbox.minY + STROKE_WIDTH;
-    // Use the larger dimension for both axes to keep a 1:1 viewBox
-    const side = Math.max(rawW, rawH);
-    const cx = (bbox.minX + bbox.maxX) / 2;
-    const cy = (bbox.minY + bbox.maxY) / 2;
-    const x = cx - side / 2;
-    const y = cy - side / 2;
-    vb = `${x} ${y} ${side} ${side}`;
+    const x = bbox.minX - pad;
+    const y = bbox.minY - pad;
+    vbW = bbox.maxX - bbox.minX + STROKE_WIDTH;
+    vbH = bbox.maxY - bbox.minY + STROKE_WIDTH;
+    vb = `${x} ${y} ${vbW} ${vbH}`;
   }
 
-  // Build SVG string with tight viewBox
-  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="24" height="24" fill="none" stroke="black" stroke-width="${STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round">\n`;
+  // Build SVG string — width/height follow viewBox aspect ratio
+  let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb}" width="${vbW}" height="${vbH}" fill="none" stroke="black" stroke-width="${STROKE_WIDTH}" stroke-linecap="round" stroke-linejoin="round">\n`;
 
   for (const el of elements) {
     const attrStr = Object.entries(el.attrs)

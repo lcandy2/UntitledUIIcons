@@ -21,12 +21,12 @@
         <path id="Capline-S" d="M18,76 l800,0" />
         <path id="H-reference" d="M85,145.755 L87.685,145.755 L113.369,79.287 L114.052,79.287 L114.052,76 L112.148,76 L85,145.755 Z M95.693,121.536 L130.996,121.536 L130.263,119.313 L96.474,119.313 L95.693,121.536 Z M139.15,145.755 L141.787,145.755 L114.638,76 L113.466,76 L113.466,79.287 L139.15,145.755 Z" stroke="none" transform="translate(0,200)" />
         <path id="Baseline-S" d="M18,146 l800,0" />
-        <path id="left-margin-Ultralight-M" d="M230,256 l0,110" />
-        <path id="right-margin-Ultralight-M" d="M300,256 l0,110" />
-        <path id="left-margin-Regular-M" d="M430,256 l0,110" />
-        <path id="right-margin-Regular-M" d="M500,256 l0,110" />
-        <path id="left-margin-Black-M" d="M630,256 l0,110" />
-        <path id="right-margin-Black-M" d="M700,256 l0,110" />
+        <path id="left-margin-Ultralight-M" d="M237.778,256 l0,110" />
+        <path id="right-margin-Ultralight-M" d="M292.222,256 l0,110" />
+        <path id="left-margin-Regular-M" d="M437.778,256 l0,110" />
+        <path id="right-margin-Regular-M" d="M492.222,256 l0,110" />
+        <path id="left-margin-Black-M" d="M637.778,256 l0,110" />
+        <path id="right-margin-Black-M" d="M692.222,256 l0,110" />
         <path id="Capline-M" d="M18,276 l800,0" />
         <path id="Baseline-M" d="M18,346 l800,0" />
         <path id="Capline-L" d="M18,476 l800,0" />
