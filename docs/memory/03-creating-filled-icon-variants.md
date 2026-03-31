@@ -87,17 +87,25 @@ Icons like lock03 (shackle + body), home02 (house + door), user-circle (circle +
 <!-- user-circle.filled.svg -->
 <!-- Layer 1: circle filled, person cut out via evenodd -->
 <path fill-rule="evenodd" d="M22 12c0...10Z M16 9.5a4...0Z M5.316...19.438Z" fill="black" stroke="none"/>
-<!-- Layer 2: outer circle stroke only (no person stroke) -->
-<path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2s10 4.477 10 10Z"/>
+<!-- Layer 2: full original stroke -->
+<path d="M5.316 19.438A4.001...2.438M16 9.5a4...0Zm6 2.5c0...10Z"/>
 ```
 
 Key rules for Strategy B:
 - Layer 1: all shapes in one path with `fill-rule="evenodd"` — outer shape is filled, inner shapes are cutouts
-- Layer 2: **only the outermost shape** with stroke — cutout details must NOT have strokes, otherwise the stroke shows on top of the fill
+- Layer 2: full original stroke overlay for guide alignment
 
-### Strategy C: Compound icons (filled body + stroked detail)
+### Strategy C: Fill underlay + full original stroke overlay
 
-Icons like lock03 where the shackle must remain as a visible stroke.
+The **default strategy** for most icons. Two layers:
+1. Fill underlay (`fill="black" stroke="none"`) — the shape(s) to fill
+2. Full original path with stroke — ensures SF Symbol guides match the outline version
+
+```svg
+<!-- heart.filled.svg -->
+<path d="M11.993 5.136c...826Z" fill="black" stroke="none"/>
+<path clip-rule="evenodd" d="M11.993 5.136c...826Z"/>
+```
 
 ```svg
 <!-- lock03.filled.svg -->
@@ -105,17 +113,21 @@ Icons like lock03 where the shackle must remain as a visible stroke.
 <path d="M17 11V8...v3m1.8 10h6.4c...21Z"/>                 <!-- full original stroke -->
 ```
 
-The stroke overlay includes both shackle and body. Since the body fill is underneath and stroke is black-on-black, only the shackle stroke is visually distinct.
+For simple icons (heart, bookmark), both layers use the same `d`. For compound icons (lock), Layer 1 uses only the closed body subpath.
+
+### ❌ Strategy A: Single path with `fill="black"` (deprecated)
+
+Using one path with `fill="black"` and inherited stroke avoids the inner stroke artifact but causes **guide misalignment** — swiftdraw treats fill+stroke paths differently from stroke-only, producing different margin positions.
 
 ## Existing Filled Variants
 
 | Override file | Swift property | Strategy | Notes |
 |---|---|---|---|
-| `heart.filled.svg` | `.heart_filled` | A | Single path, fill+stroke |
-| `heart-rounded.filled.svg` | `.heart_rounded_filled` | A | Single path, fill+stroke |
-| `bookmark.filled.svg` | `.bookmark_filled` | A | Single path, fill+stroke |
+| `heart.filled.svg` | `.heart_filled` | C | Fill underlay + full stroke |
+| `heart-rounded.filled.svg` | `.heart_rounded_filled` | C | Fill underlay + full stroke |
+| `bookmark.filled.svg` | `.bookmark_filled` | C | Fill underlay + full stroke |
 | `grid01.filled.svg` | `.grid01_filled` | A | 4 closed subpaths, fill+stroke |
 | `lock03.filled.svg` | `.lock03_filled` | C | Body filled, shackle stroked |
 | `lock-unlocked03.filled.svg` | `.lock_unlocked03_filled` | C | Body filled, open shackle stroked |
 | `home02.filled.svg` | `.home02_filled` | B | House filled, door cutout (evenodd) |
-| `user-circle.filled.svg` | `.user_circle_filled` | B | Circle filled, person cutout (evenodd) |
+| `user-circle.filled.svg` | `.user_circle_filled` | B+C | Circle filled (evenodd cutout) + full stroke |
