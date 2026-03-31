@@ -3556,4 +3556,7 @@ extension UntitledUIIcon {
 
 	/// `lock03.filled`
 	static public let lock03_filled = UntitledUIIcon(identifier: "lock03.filled")
+
+	/// `user-circle.filled`
+	static public let user_circle_filled = UntitledUIIcon(identifier: "user-circle.filled")
 }
