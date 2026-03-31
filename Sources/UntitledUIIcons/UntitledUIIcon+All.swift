@@ -3545,6 +3545,9 @@ extension UntitledUIIcon {
 	/// `zoom-out`
 	static public let zoom_out = UntitledUIIcon(identifier: "zoom-out")
 
+	/// `bookmark.filled`
+	static public let bookmark_filled = UntitledUIIcon(identifier: "bookmark.filled")
+
 	/// `heart.filled`
 	static public let heart_filled = UntitledUIIcon(identifier: "heart.filled")
 
